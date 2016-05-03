@@ -50,11 +50,38 @@ public class GuessGameClient {
                 
                 // Get the guess from the user
                 System.out.print("Enter guess: ");
-                String userInput = userIn.readLine();
+                String userInput;
+                
+                // Wait for a user input for 10 seconds before timing out
+                long startTime = System.currentTimeMillis();
+                while ((System.currentTimeMillis() - startTime) < 10 * 1000 && !userIn.ready()) {}
+                
+                if (userIn.ready()) {
+                    userInput = userIn.readLine();
+                    
+                    // Send the guess to the server
+                    serverOut.write(String.format("%s%n", userInput));
+                    serverOut.flush();
+                    
+                } else {
+                    
+                    // Send the guess to the server
+                    serverOut.write(String.format("%s%n", null));
+                    serverOut.flush();
 
-                // Send the guess to the server
-                serverOut.write(String.format("%s%n", userInput));
-                serverOut.flush();
+                    // Get the result returned by the server
+                    String returnedMsg = serverIn.readLine();
+                    String[] returnedParts = returnedMsg.split(":");
+                    
+                    // Use this string format
+                    System.out.printf("Turn %s: %s%n",
+                            // The turn number
+                            returnedParts[1],
+                            // Whether the guess was incorrect (ERR) or if they won or lost
+                            returnedParts[0]);
+                    
+                    throw new IOException();
+                }
 
                 // Get the result returned by the server
                 String returnedMsg = serverIn.readLine();
@@ -106,8 +133,6 @@ public class GuessGameClient {
             System.exit(1);
         }
         
-        catch (IOException e) {
-            
-        }
+        catch (IOException e) { }
     }
 }

@@ -73,13 +73,19 @@ public class GuessGameServerHandler implements Runnable {
             String startMsg = String.format("START:%d:%d%n", maxValue, timeLimit/1000);
             serverOut.write(startMsg);
             serverOut.flush();
-            new Thread(game).start();
+            Thread gameThread = new Thread(game);
+            gameThread.start();
             
             // Continue to process guesses from the user till the game is over
             while (!game.finished()) {
                 
                 // Get the guess from the client and turn into an integer
                 String guessInput = serverIn.readLine();
+                
+                if (guessInput == null) {
+                    game.timeOut();
+                    break;
+                }
                 
                 // Create a variable to hold the response to be sent to the client
                 String response;
@@ -132,28 +138,44 @@ public class GuessGameServerHandler implements Runnable {
                         }
                         
                         info = game.toString();
+                        
+                        // If the game hasn't finished (otherwise GameState prints the info)
+                        if (!game.finished())
+                        
+                            // Print information about the guess
+                            System.out.printf("%c %d (%s)-%.1fs/%d%n",
+                                    clientLetter,
+                                    guess,
+                                    info,
+                                    game.getTimeRemaining()/1000.0,
+                                    turns);
                     
                     // Otherwise, if the guess is not an integer, or between the specified values
                     // the guess isn't valid, so return ERR and the number of turns
                     } else {
                         response = String.format("ERR:%d%n", turns);
                         info = "ERR out of range";
+                        
+                        // Print information about the guess
+                        System.out.printf("%c %d (%s)-%.1fs/%d%n",
+                                clientLetter,
+                                guess,
+                                info,
+                                game.getTimeRemaining()/1000.0,
+                                turns);
                     }
-                } catch (Exception e) {
+                
+                } catch (NumberFormatException e) {
                     response = String.format("ERR:%d%n", turns);
                     info = "ERR non-integer";
-                }
-                
-                // If the game hasn't finished (otherwise GameState prints the info)
-                if (!game.finished())
-                
+                    
                     // Print information about the guess
-                    System.out.printf("%c %d (%s)-%.1fs/%d%n",
+                    System.out.printf("%c ** (%s)-%.1fs/%d%n",
                             clientLetter,
-                            target,
                             info,
                             game.getTimeRemaining()/1000.0,
                             turns);
+                }
                 
                 // Send the response message
                 serverOut.write(response);

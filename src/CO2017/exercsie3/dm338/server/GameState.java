@@ -35,7 +35,10 @@ public class GameState implements Runnable {
     private int numOfGuesses;
     
     // Whether the game is over
-    private boolean gameOver = false;
+    private volatile boolean gameOver = false;
+    
+    // Whether the user lost cause they didn't enter an input within a valid time
+    public volatile boolean timeOut = false;
     
     // How much time is remaining (or, the actual time when the game will be over). (Phase 3 only.)
     // Note that the time does not start until the run() method is invoked.
@@ -45,7 +48,7 @@ public class GameState implements Runnable {
     private int lastGuess;
     
     // Whether the game was won or not
-    private boolean won;
+    private volatile boolean won;
 
     // CONSTRUCTORS
     // Setup an instance of the game.
@@ -83,19 +86,33 @@ public class GameState implements Runnable {
         initialTime = TimeUnit.MILLISECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
         
         // Start the timer
-        while (timeRemaining > 0 && !finished()) {
-            
+        do {
             // Calculate the remaining time by the relative difference from the initial time (time elapsed)
             long currentTime = TimeUnit.MILLISECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
             long timeElapsed = currentTime - initialTime;
             // and subtracting it from the time limit
             timeRemaining = timeLimit - timeElapsed;
-        }
+            
+//            finished();
+//            if (timeRemaining % 500 == 0) {
+//                System.out.printf("%b %b %.1fs%n",
+//                        gameOver,
+//                        finished(),
+//                        timeRemaining/1000.0);
+//            }
+            
+        // Count down until the game is over or time is up    
+        } while (timeRemaining > 0 && !finished());
         
-        // If the time limit ends and the game hasn't been won yet
-        System.out.println(gameOver);
-        System.out.println(finished());
-        if (!finished()) {
+        System.out.printf("%b %b %b %b %.1fs%n",
+        gameOver,
+        finished(),
+        won,
+        timeOut,
+        timeRemaining/1000.0);
+        
+        // If the time limit ends and the game hasn't been won yet and it didn't time out
+        if (!won && !timeOut) {
 
             // End the game
             gameOver = true;
@@ -113,6 +130,13 @@ public class GameState implements Runnable {
             
             // Print information about the guess
             System.out.printf("%c - (LOSE)--%.1fs/%d%n",
+                    handler.getClientLetter(),
+                    timeRemaining/1000.0,
+                    numOfGuesses);
+            
+        } else if (!timeOut) {
+            // Print information about the guess
+            System.out.printf("%c - (WIN)-%.1fs/%d%n",
                     handler.getClientLetter(),
                     timeRemaining/1000.0,
                     numOfGuesses);
@@ -168,6 +192,25 @@ public class GameState implements Runnable {
         
         // If something goes wrong return error
         return "ERROR";
+    }
+    
+    // Called to end the game after waiting for user input for 10s
+    public void timeOut() {
+        System.out.println("fuck servers");
+        
+        // Send a message to the user that the game is over
+        String response = String.format("LOSE1:%d%n", numOfGuesses);
+        try {
+            output.write(response);
+            output.flush();
+        
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        // Update variables
+        gameOver = true;
+        won = false;
+        timeOut = true;
     }
     
     // GETTERS & SETTERS
