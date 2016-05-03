@@ -1,5 +1,6 @@
 package CO2017.exercsie3.dm338.server;
 
+import java.io.IOException;
 import java.io.Writer;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -92,24 +93,9 @@ public class GameState implements Runnable {
             long timeElapsed = currentTime - initialTime;
             // and subtracting it from the time limit
             timeRemaining = timeLimit - timeElapsed;
-            
-//            finished();
-//            if (timeRemaining % 500 == 0) {
-//                System.out.printf("%b %b %.1fs%n",
-//                        gameOver,
-//                        finished(),
-//                        timeRemaining/1000.0);
-//            }
-            
+
         // Count down until the game is over or time is up    
         } while (timeRemaining > 0 && !finished());
-        
-        System.out.printf("%b %b %b %b %.1fs%n",
-        gameOver,
-        finished(),
-        won,
-        timeOut,
-        timeRemaining/1000.0);
         
         // If the time limit ends and the game hasn't been won yet and it didn't time out
         if (!won && !timeOut) {
@@ -117,14 +103,15 @@ public class GameState implements Runnable {
             // End the game
             gameOver = true;
             won = false;
-    
-            // Send a message to the user that the game is over
-            String response = String.format("LOSE:%d%n", numOfGuesses);
+            
             try {
+                // Send a message to the user that the game is over
+                String response = String.format("LOSE:%d%n", numOfGuesses);
+
                 output.write(response);
                 output.flush();
             
-            } catch (Exception e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
             
@@ -136,8 +123,9 @@ public class GameState implements Runnable {
             
         } else if (!timeOut) {
             // Print information about the guess
-            System.out.printf("%c - (WIN)-%.1fs/%d%n",
+            System.out.printf("%c %d (WIN)-%.1fs/%d%n",
                     handler.getClientLetter(),
+                    lastGuess,
                     timeRemaining/1000.0,
                     numOfGuesses);
         }
@@ -196,17 +184,7 @@ public class GameState implements Runnable {
     
     // Called to end the game after waiting for user input for 10s
     public void timeOut() {
-        System.out.println("fuck servers");
         
-        // Send a message to the user that the game is over
-        String response = String.format("LOSE1:%d%n", numOfGuesses);
-        try {
-            output.write(response);
-            output.flush();
-        
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         // Update variables
         gameOver = true;
         won = false;

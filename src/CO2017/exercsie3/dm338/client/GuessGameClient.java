@@ -63,23 +63,7 @@ public class GuessGameClient {
                     serverOut.write(String.format("%s%n", userInput));
                     serverOut.flush();
                     
-                } else {
-                    
-                    // Send the guess to the server
-                    serverOut.write(String.format("%s%n", null));
-                    serverOut.flush();
-
-                    // Get the result returned by the server
-                    String returnedMsg = serverIn.readLine();
-                    String[] returnedParts = returnedMsg.split(":");
-                    
-                    // Use this string format
-                    System.out.printf("Turn %s: %s%n",
-                            // The turn number
-                            returnedParts[1],
-                            // Whether the guess was incorrect (ERR) or if they won or lost
-                            returnedParts[0]);
-                    
+                } else {                    
                     throw new IOException();
                 }
 
@@ -121,9 +105,6 @@ public class GuessGameClient {
             
             // Close connection after game has handed
             server.close();
-            
-            // Throw IOException "when its all over"
-            throw new IOException();
         }
         
         // Catch any errors, print out relevant info and exit the program
@@ -133,6 +114,8 @@ public class GuessGameClient {
             System.exit(1);
         }
         
-        catch (IOException e) { }
+        catch (IOException e) {
+            System.out.println("You ran out of time for your guess. (10s)");
+        }
     }
 }
